@@ -1,12 +1,13 @@
 {
+  "id": "com.missilebattle.v1",
   "name": "미사일대전",
   "short_name": "미사일대전",
   "description": "Premium 2D Artillery Missile Battle Game Optimized for Mobile",
-  "start_url": "fortress_mobile.html",
+  "start_url": "index.html",
   "display": "standalone",
   "orientation": "landscape",
   "background_color": "#111111",
-  "theme_color": "#00f2fe",
+  "theme_color": "#111111",
   "icons": [
     {
       "src": "icon.png",
