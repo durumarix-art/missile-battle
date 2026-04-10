@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <!-- PWA 및 홈 화면 아이콘 설정 -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="미사일대전">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#111111">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <title>미사일대전 - 모바일 미사일 전쟁</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0c10;
+            --neon-blue: #66fcf1;
+            --neon-green: #45a29e;
+            --neon-pink: #ff007f;
+            --neon-orange: #ff8c00;
+            --text-color: #c5c6c7;
+            --font-main: 'Orbitron', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            background-color: #000;
+            color: var(--text-color);
+            font-family: var(--font-main);
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        #hud-top {
+            height: 10%;
+            min-height: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 2px solid var(--neon-blue);
+            z-index: 10;
+            font-size: 0.9rem;
+        }
+
+        .hud-box {
+            color: var(--neon-blue);
+            text-shadow: 0 0 5px var(--neon-blue);
+            font-weight: bold;
+        }
+
+        #stage-indicator {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--neon-pink);
+            text-shadow: 0 0 8px var(--neon-pink);
+        }
+
+        #canvas-wrapper {
+            position: relative;
+            flex-grow: 1;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #terrain-canvas {
+            z-index: 1;
+        }
+
+        #entity-canvas {
+            z-index: 2;
+        }
+
+        /* 하단 상태바 */
+        #status-bottom {
+            height: 15%;
+            min-height: 70px;
+            background: rgba(0, 0, 0, 0.9);
+            border-top: 2px solid var(--neon-blue);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 5px 20px;
+            z-index: 10;
+            position: relative;
+        }
+
+        .hp-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .hp-bar-wrapper {
+            width: 45%;
+            height: 12px;
+            background: #333;
+            border: 1px solid #555;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .hp-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        #hp-p1 {
+            background: linear-gradient(90deg, #00f2fe, #4facfe);
+        }
+
+        #hp-p2 {
+            background: linear-gradient(90deg, #ff0844, #ffb199);
+            float: right;
+        }
+
+        .center-power {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .angle-display {
+            color: var(--neon-orange);
+            font-size: 1.3rem;
+            text-shadow: 0 0 5px var(--neon-orange);
+            width: 60px;
+        }
+
+        .power-bar {
+            flex-grow: 1;
+            height: 18px;
+            background: #111;
+            border: 1px solid #444;
+            border-radius: 9px;
+            overflow: hidden;
+            box-shadow: inset 0 0 5px #000;
+        }
+
+        #power-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #fceabb, #f8b500);
+            box-shadow: 0 0 10px #f8b500;
+        }
+
+        /* 터치패드 (투명 오버레이) */
+        .touch-controls {
+            position: absolute;
+            bottom: 5%;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5%;
+            z-index: 20;
+            pointer-events: none;
+            /* 뒷면 클릭 통과 */
+        }
+
+        .touch-controls>div {
+            pointer-events: auto;
+            display: flex;
+        }
+
+        .d-pad {
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .touch-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(102, 252, 241, 0.15);
+            border: 2px solid var(--neon-blue);
+            color: #fff;
+            font-size: 1.8rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.3);
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+            backdrop-filter: blur(2px);
+        }
+
+        .touch-btn:active {
+            background: rgba(102, 252, 241, 0.5);
+            transform: scale(0.95);
+        }
+
+        #btn-fire {
+            width: 90px;
+            height: 90px;
+            background: rgba(255, 0, 127, 0.15);
+            border: 2px solid var(--neon-pink);
+            font-size: 1.2rem;
+            box-shadow: 0 0 20px rgba(255, 0, 127, 0.4);
+            align-self: flex-end;
+        }
+
+        #btn-fire:active {
+            background: rgba(255, 0, 127, 0.6);
+        }
+
+        /* 게임 오버/클리어 스크린 */
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #winner-text {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 15px;
+        }
+
+        #restart-btn {
+            padding: 15px 40px;
+            font-size: 1.3rem;
+            font-family: var(--font-main);
+            background: transparent;
+            color: var(--neon-green);
+            border: 2px solid var(--neon-green);
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(69, 162, 158, 0.4);
+            cursor: pointer;
+        }
+
+        #restart-btn:active {
+            background: var(--neon-green);
+            color: #000;
+        }
+
+        /* 세로 경고 (아이폰 등 강제회전 불가 대비) */
+        #portrait-warning {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            color: var(--neon-orange);
+        }
+
+        @media screen and (orientation: portrait) {
+            #portrait-warning.active {
+                display: flex;
+            }
+        }
+
+        /* 로딩/시작 화면 */
+        #start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            z-index: 5000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .title-neon {
+            font-size: 3rem;
+            color: var(--neon-blue);
+            text-shadow: 0 0 20px var(--neon-blue);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--neon-pink);
+            margin-bottom: 40px;
+            letter-spacing: 3px;
+        }
+
+        #real-start-btn {
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            font-family: var(--font-main);
+            font-weight: bold;
+            background: transparent;
+            color: var(--neon-green);
+            border: 2px solid var(--neon-green);
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(69, 162, 158, 0.4);
+            cursor: pointer;
+            animation: pulse 2s infinite;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #real-start-btn:active {
+            background: var(--neon-green);
+            color: #000;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 15px rgba(69, 162, 158, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(69, 162, 158, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 15px rgba(69, 162, 158, 0.4);
+            }
+        }
+
+        .instruction {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        /* 📱 앱 설치 배너 스타일 */
+        #pwa-install-banner {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 400px;
+            background: rgba(20, 20, 40, 0.95);
+            border: 2px solid var(--neon-blue);
+            border-radius: 15px;
+            padding: 15px;
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 0 25px rgba(102, 252, 241, 0.4);
+            backdrop-filter: blur(10px);
+            animation: slideDown 0.5s ease;
+        }
+
+        @keyframes slideDown {
+            from { top: -100px; opacity: 0; }
+            to { top: 20px; opacity: 1; }
+        }
+
+        #pwa-install-banner h3 {
+            color: var(--neon-blue);
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        #pwa-install-banner p {
+            font-size: 0.8rem;
+            text-align: center;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        #btn-install-now {
+            padding: 10px 25px;
+            font-family: var(--font-main);
+            background: var(--neon-blue);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #btn-install-close {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            color: #888;
+            font-size: 1.2rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 브라우저 강제 회전 불가를 대비한 세로 화면 차단 경고창 -->
+    <div id="portrait-warning">
+        <h1 style="font-size:4rem; margin-bottom:20px;">📱🔄</h1>
+        <h2>기기를 가로로 눕혀주세요!</h2>
+        <p style="margin-top:10px; color:#888;">원활한 화면 비율을 위해 가로 모드가 필수입니다.<br>화면 회전 잠금을 풀고 기기를 돌려주세요.</p>
+    </div>
+
+    <!-- 네이티브 앱 느낌의 시작 화면 (풀스크린 트리거) -->
+    <div id="start-screen">
+        <div id="pwa-install-banner">
+            <div id="btn-install-close">×</div>
+            <h3>🚀 미사일대전 앱 설치</h3>
+            <p id="pwa-desc">바탕화면에 아이콘을 만들면<br>주소창 없이 진짜 게임 앱처럼 즐길 수 있어요!</p>
+            <button id="btn-install-now">지금 설치하기</button>
+        </div>
+        <h1 class="title-neon">미사일대전</h1>
+        <p class="subtitle">모바일 미사일 전쟁</p>
+        <button id="real-start-btn">🚀 START GAME</button>
+        <p class="instruction">Tap to enter fullscreen & landscape mode.</p>
+    </div>
+    <div id="hud-top">
+        <div class="hud-box">WIND <span id="wind-meter">0</span></div>
+        <div id="stage-indicator">STAGE 1 / 50</div>
+        <div class="hud-box" id="turn-indicator" style="color:var(--neon-pink);">ENEMY TURN</div>
+    </div>
+
+    <div id="canvas-wrapper">
+        <canvas id="terrain-canvas"></canvas>
+        <canvas id="entity-canvas"></canvas>
+
+        <div class="touch-controls">
+            <div class="d-pad">
+                <div class="touch-btn" id="btn-up">▲</div>
+                <div class="touch-btn" id="btn-down">▼</div>
+            </div>
+            <div>
+                <div class="touch-btn" id="btn-fire">FIRE</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-bottom">
+        <div class="hp-container">
+            <div style="color:#00f2fe; text-shadow:0 0 5px #00f2fe;">P1 HP: <span id="hp-text-p1">100</span></div>
+            <div style="color:#ff0844; text-shadow:0 0 5px #ff0844;">ENEMY HP: <span id="hp-text-p2">100</span></div>
+        </div>
+        <div class="hp-container" style="margin-bottom:12px;">
+            <div class="hp-bar-wrapper">
+                <div id="hp-p1" class="hp-fill"></div>
+            </div>
+            <div class="hp-bar-wrapper">
+                <div id="hp-p2" class="hp-fill"></div>
+            </div>
+        </div>
+
+        <div class="center-power">
+            <div class="angle-display" id="angle-display">45°</div>
+            <div class="power-bar">
+                <div id="power-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1 id="winner-text">STAGE CLEAR!</h1>
+        <button id="restart-btn">NEXT STAGE</button>
+    </div>
+
+    <script>
+        const terrainCanvas = document.getElementById('terrain-canvas');
+        const entityCanvas = document.getElementById('entity-canvas');
+        const terrainCtx = terrainCanvas.getContext('2d', { willReadFrequently: true });
+        const entityCtx = entityCanvas.getContext('2d');
+
+        let width = 1200;
+        let height = 650;
+
+        const resizeObserver = new ResizeObserver(entries => {
+            for (let entry of entries) {
+                let w = Math.floor(entry.contentRect.width);
+                let h = Math.floor(entry.contentRect.height);
+                if (w <= 0 || h <= 0) continue;
+
+                let scaleX = width > 0 ? w / width : 1;
+
+                width = w;
+                height = h;
+                terrainCanvas.width = width;
+                terrainCanvas.height = height;
+                entityCanvas.width = width;
+                entityCanvas.height = height;
+
+                // 화면이 늘어나거나 줄어들면, 탱크들의 위치(X좌표)도 그 비율만큼 넓게 재배치!
+                p1.x *= scaleX;
+                p2.x *= scaleX;
+                if (missile) missile.x *= scaleX;
+
+                if (state !== 'GAMEOVER') {
+                    generateTerrain(currentStage);
+                    p1.y = getTerrainY(p1.x) - TANK_HEIGHT / 2;
+                    p2.y = getTerrainY(p2.x) - TANK_HEIGHT / 2;
+                    updateUI();
+                }
+            }
+        });
+        // DOM 로드 후 바로 크기 추적 시작
+        window.addEventListener('DOMContentLoaded', () => {
+            resizeObserver.observe(document.getElementById('canvas-wrapper'));
+        });
+
+        // UI
+        const windMeter = document.getElementById('wind-meter');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const stageIndicator = document.getElementById('stage-indicator');
+        const angleDisplay = document.getElementById('angle-display');
+        const powerFill = document.getElementById('power-fill');
+        const hpP1 = document.getElementById('hp-p1');
+        const hpTextP1 = document.getElementById('hp-text-p1');
+        const hpP2 = document.getElementById('hp-p2');
+        const hpTextP2 = document.getElementById('hp-text-p2');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const winnerText = document.getElementById('winner-text');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const btnUp = document.getElementById('btn-up');
+        const btnDown = document.getElementById('btn-down');
+        const btnFire = document.getElementById('btn-fire');
+
+        const GRAVITY = 0.2;
+        const TANK_WIDTH = 34;
+        const TANK_HEIGHT = 16;
+        const MAX_POWER = 18; // 발사 힘이 너무 세지 않게 22에서 18로 하향
+        const MAX_STAGE = 50;
+
+        let currentStage = 1;
+        let state = 'GAMEOVER';
+        let currentPlayer = 1;
+        let wind = 0;
+        let spacePressed = false;
+        let upPressed = false;
+        let downPressed = false;
+        let isCpuMode = true;
+
+        let missile = null;
+        let p1 = { x: 150, y: 0, hp: 100, angle: 45, power: 0, color: '#00f2fe' };
+        let p2 = { x: 850, y: 0, hp: 100, angle: 135, power: 0, color: '#ff0844' };
+
+        let audioCtx;
+        let bgmStarted = false;
+        let bgmGain = null;
+        let reverbNode = null;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (!bgmStarted) {
+                bgmStarted = true;
+                startBGM();
+            }
+        }
+
+        function pauseBGM() {
+            if (bgmGain && audioCtx) {
+                bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                bgmGain.gain.setValueAtTime(bgmGain.gain.value, audioCtx.currentTime);
+                bgmGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.6);
+            }
+        }
+
+        function resumeBGM() {
+            if (bgmGain && audioCtx) {
+                bgmGain.gain.cancelScheduledValues(audioCtx.currentTime);
+                bgmGain.gain.setValueAtTime(0, audioCtx.currentTime);
+                bgmGain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 1.2);
+            }
+        }
+
+        function createReverb() {
+            const length = audioCtx.sampleRate * 2.5; // 2.5초 잔향
+            const impulse = audioCtx.createBuffer(2, length, audioCtx.sampleRate);
+            for (let i = 0; i < 2; i++) {
+                const channel = impulse.getChannelData(i);
+                for (let j = 0; j < length; j++) {
+                    // 기하급수적으로 감쇠하는 화이트 노이즈로 홀 잔향 시뮬레이션
+                    channel[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / length, 3);
+                }
+            }
+            const reverb = audioCtx.createConvolver();
+            reverb.buffer = impulse;
+            return reverb;
+        }
+
+        function createInstrument(freq, time, duration, type = 'string') {
+            const g = audioCtx.createGain();
+            g.connect(reverbNode);
+            g.connect(bgmGain);
+
+            const voices = [];
+            const setupVoice = (waveType, vol, detune = 0) => {
+                const o = audioCtx.createOscillator();
+                o.type = waveType;
+                o.frequency.value = freq;
+                o.detune.value = detune;
+                const vg = audioCtx.createGain();
+                vg.gain.value = vol;
+                o.connect(vg);
+                vg.connect(g);
+                return o;
+            };
+
+            if (type === 'string') {
+                // 내부 볼륨 대폭 상향 (기존 0.05 -> 0.4)
+                voices.push(setupVoice('sawtooth', 0.3, -5));
+                voices.push(setupVoice('sawtooth', 0.3, 5));
+                voices.push(setupVoice('sine', 0.5));
+                g.gain.setValueAtTime(0, time);
+                g.gain.linearRampToValueAtTime(0.7, time + 0.1); // Peak를 0.7까지 상향
+                g.gain.setValueAtTime(0.7, time + duration - 0.2);
+                g.gain.exponentialRampToValueAtTime(0.001, time + duration + 0.5);
+            } else if (type === 'pad') {
+                // 패드 소리 상향 (기존 0.08 -> 0.4)
+                voices.push(setupVoice('triangle', 0.4));
+                g.gain.setValueAtTime(0, time);
+                g.gain.linearRampToValueAtTime(0.5, time + 1.0);
+                g.gain.exponentialRampToValueAtTime(0.001, time + duration + 2.0);
+            }
+
+            voices.forEach(v => { v.start(time); v.stop(time + duration + 2); });
+        }
+
+        function startBGM() {
+            bgmGain = audioCtx.createGain();
+            bgmGain.gain.value = 1.0; // 악기 본체 소리를 키웠으므로 마스터 볼륨을 최적화(1.0)
+            bgmGain.connect(audioCtx.destination);
+            reverbNode = createReverb();
+            reverbNode.connect(audioCtx.destination);
+
+            const nf = (n) => 440 * Math.pow(2, (n - 69) / 12);
+
+            // =============================================
+            // Ys II - "Too Full With Love" (Orchestra Style)
+            // =============================================
+            const BPM = 148;
+            const step = 60 / BPM / 4; 
+            const loopSteps = 256; 
+            const loopDuration = loopSteps * step;
+
+            const m = new Array(loopSteps).fill(0);
+            const intro = [53,55,57,60,62,65,67,69]; 
+            for(let i=0; i<8; i++) m[i*2] = intro[i]+12;
+            m[32]=65; m[34]=67; m[36]=69; m[44]=69; m[46]=70; m[48]=69; m[52]=67; m[56]=65;
+            m[64]=67; m[76]=65; m[78]=64; m[80]=65; m[82]=62;
+            m[96]=64; m[112]=60;
+            m[128]=65; m[130]=67; m[132]=69; m[140]=69; m[142]=70; m[144]=69; m[148]=72; m[152]=74;
+            m[160]=72; m[172]=69; m[174]=67; m[176]=69; m[178]=65;
+            m[192]=62; m[204]=64; m[208]=62; m[224]=60;
+
+            const b = new Array(loopSteps).fill(0);
+            const bp = [53, 48, 50, 45, 46, 48, 53, 60];
+            for(let i=0; i<loopSteps/16; i++){
+                let root = bp[i%bp.length];
+                b[i*16] = root;
+            }
+
+            function scheduleLoop() {
+                const now = audioCtx.currentTime + 0.1;
+                for (let i = 0; i < loopSteps; i++) {
+                    const t = now + i * step;
+
+                    // 웅장한 패드 사운드 (4마디마다 코드 변경)
+                    if (i % 64 === 0) {
+                        const chordRoot = nf(bp[(i/16)%bp.length] - 12);
+                        createInstrument(chordRoot, t, step * 64, 'pad');
+                        createInstrument(chordRoot * 1.5, t, step * 64, 'pad'); // 5도 화음
+                    }
+
+                    // 멜로디 (바이올린 느낌의 부드러운 현악기)
+                    if (m[i] > 0) {
+                        let dur = (m[i+2] === 0) ? step * 3 : step * 1.5;
+                        createInstrument(nf(m[i]), t, dur, 'string');
+                    }
+
+                    // 베이스 (깊은 첼로 소리)
+                    if (b[i] > 0) {
+                        const bo = audioCtx.createOscillator();
+                        const bg = audioCtx.createGain();
+                        bo.type = 'triangle';
+                        bo.frequency.value = nf(b[i] - 12);
+                        bg.gain.setValueAtTime(0.2, t);
+                        bg.gain.exponentialRampToValueAtTime(0.01, t + step * 8);
+                        bo.connect(bg); bg.connect(bgmGain);
+                        bo.start(t); bo.stop(t + step * 8.5);
+                    }
+
+                    // 드럼 대신 부드러운 타악기 느낌 (심벌즈 등)
+                    if (i % 32 === 0) {
+                        const bSize = audioCtx.sampleRate * 0.5;
+                        const buf = audioCtx.createBuffer(1, bSize, audioCtx.sampleRate);
+                        const d = buf.getChannelData(0);
+                        for (let j = 0; j < d.length; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / bSize, 4);
+                        const ns = audioCtx.createBufferSource();
+                        ns.buffer = buf;
+                        const ng = audioCtx.createGain();
+                        ng.gain.setValueAtTime(0.02, t);
+                        ns.connect(ng); ng.connect(bgmGain);
+                        ns.start(t);
+                    }
+                }
+                setTimeout(() => { if (audioCtx && audioCtx.state !== 'closed') scheduleLoop(); }, (loopDuration - 0.1) * 1000);
+            }
+            scheduleLoop();
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            if (type === 'shoot') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(250, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.15);
+                gain.gain.setValueAtTime(0.04, now); // 발사 소리 2배 상향
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'explode') {
+                const bufferSize = audioCtx.sampleRate * 1.0;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1800, now);
+                filter.frequency.exponentialRampToValueAtTime(40, now + 0.8);
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(0.2, now); // 폭발 노이즈 2배 상향
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination);
+                noise.start(now);
+                const osc = audioCtx.createOscillator();
+                const oscGain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.exponentialRampToValueAtTime(20, now + 0.6);
+                oscGain.gain.setValueAtTime(0.2, now); // 폭발 진동음 2배 상향
+                oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.connect(oscGain); oscGain.connect(audioCtx.destination);
+                osc.start(now); osc.stop(now + 0.6);
+            }
+        }
+
+        function init() {
+            setupTouchControls();
+            startStage(1);
+        }
+
+        function startStage(stage) {
+            currentStage = stage;
+            const wrapper = document.getElementById('canvas-wrapper');
+
+            // 매 스테이지별 완전 무작위 분위기 맵핑
+            let hue1 = Math.floor(Math.random() * 360);
+            let hue2 = (hue1 + 40 + Math.random() * 60) % 360;
+            wrapper.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 15%), hsl(${hue2}, 60%, 25%), #111)`;
+
+            // 만약 옵서버가 아직 발동 전이라 사이즈가 없다면 임시 할당
+            if (!width || width < 100) width = 1200;
+            if (!height || height < 100) height = 650;
+            // 캔버스 크기도 임시 할당 (안그럼 이미지가 안그려짐)
+            if (terrainCanvas.width < 100) {
+                terrainCanvas.width = width; terrainCanvas.height = height;
+                entityCanvas.width = width; entityCanvas.height = height;
+            }
+
+            // 지형만 새로 생성 (스테이지별 차이는 이것뿐)
+            generateTerrain(currentStage);
+
+            // 모든 게임 상태를 스테이지 1과 완전히 동일하게 초기화
+            missile = null;
+            state = 'AIMING';
+            currentPlayer = 1;
+            spacePressed = false;
+            upPressed = false;
+            downPressed = false;
+
+            // P1: 왼쪽 20%, P2: 오른쪽 80% 고정 배치
+            p1.x = width * 0.2;
+            p1.hp = 100;
+            p1.power = 0;
+            p1.angle = 45;
+            p1.y = getTerrainY(p1.x) - TANK_HEIGHT / 2;
+
+            p2.x = width * 0.8;
+            p2.hp = Math.min(100, 50 + currentStage * 3);
+            p2.power = 0;
+            p2.angle = 135;
+            p2.y = getTerrainY(p2.x) - TANK_HEIGHT / 2;
+
+            randomizeWind();
+            resumeBGM(); // 새 스테이지 시작 시 BGM 페이드인
+            updateUI();
+            gameOverScreen.classList.add('hidden');
+
+            // 게임 루프 강제 재시작 (이전 루프는 GAMEOVER에서 이미 멈춤)
+            window.isLooping = true;
+            requestAnimationFrame(gameLoop);
+        }
+
+        function generateTerrain(stage) {
+            terrainCtx.clearRect(0, 0, width, height);
+            terrainCtx.beginPath();
+            terrainCtx.moveTo(0, height);
+
+            // 난이도 상승에 따른 험준함 (roughness) 강화
+            let roughness = 20 + stage * 1.5;
+            let heightVariation = 80 + stage * 2;
+
+            for (let x = 0; x <= width; x += 5) {
+                let base = height * 0.6;
+                let y = base + Math.sin(x / 120) * (roughness) + Math.sin(x / 60) * (roughness / 2) + Math.cos(x / 300) * heightVariation;
+                y = Math.max(height * 0.3, Math.min(height * 0.9, y));
+                terrainCtx.lineTo(x, y);
+            }
+            terrainCtx.lineTo(width, height);
+            terrainCtx.closePath();
+
+            terrainCtx.fillStyle = '#1c2833';
+            terrainCtx.fill();
+            terrainCtx.strokeStyle = `hsl(${(stage * 15) % 360}, 60%, 50%)`;
+            terrainCtx.lineWidth = 3;
+            terrainCtx.stroke();
+        }
+
+        function getTerrainY(x) {
+            const px = Math.floor(Math.max(0, Math.min(width - 1, x)));
+            const imgData = terrainCtx.getImageData(px, 0, 1, height).data;
+            for (let y = 0; y < height; y++) {
+                if (imgData[y * 4 + 3] > 50) return y;
+            }
+            return height;
+        }
+
+        function setupTouchControls() {
+            const addHoldEvent = (btn, onDown, onUp) => {
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); initAudio(); onDown(); });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); onUp(); });
+                btn.addEventListener('mousedown', (e) => { e.preventDefault(); initAudio(); onDown(); });
+                btn.addEventListener('mouseup', (e) => { e.preventDefault(); onUp(); });
+                btn.addEventListener('mouseleave', (e) => { e.preventDefault(); onUp(); });
+            };
+
+            addHoldEvent(btnUp, () => { if (state === 'AIMING' && currentPlayer === 1) upPressed = true; }, () => { upPressed = false; });
+            addHoldEvent(btnDown, () => { if (state === 'AIMING' && currentPlayer === 1) downPressed = true; }, () => { downPressed = false; });
+            addHoldEvent(btnFire,
+                () => { if (state === 'AIMING' && currentPlayer === 1) { spacePressed = true; p1.power = 0; } },
+                () => { if (state === 'AIMING' && currentPlayer === 1 && spacePressed) { spacePressed = false; fireMissile(p1); } }
+            );
+
+            restartBtn.addEventListener('click', () => {
+                if (p1.hp <= 0) {
+                    startStage(currentStage); // 재도전
+                } else if (currentStage >= MAX_STAGE) {
+                    startStage(1); // 만렙 클리어 환생
+                } else {
+                    startStage(currentStage + 1); // 다음 스테이지
+                }
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (state !== 'AIMING' || currentPlayer !== 1) return;
+                initAudio();
+                if (e.code === 'ArrowUp') upPressed = true;
+                if (e.code === 'ArrowDown') downPressed = true;
+                if (e.code === 'Space' && !spacePressed) { spacePressed = true; p1.power = 0; }
+            });
+            window.addEventListener('keyup', (e) => {
+                if (state !== 'AIMING' || currentPlayer !== 1) return;
+                if (e.code === 'ArrowUp') upPressed = false;
+                if (e.code === 'ArrowDown') downPressed = false;
+                if (e.code === 'Space') { spacePressed = false; fireMissile(p1); }
+            });
+        }
+
+        function randomizeWind() {
+            wind = (Math.random() - 0.5) * (0.15 + (currentStage * 0.005));
+            let displayWind = Math.round(wind * 200);
+            let direction = displayWind > 0 ? "→" : (displayWind < 0 ? "←" : "");
+            windMeter.innerText = `${Math.abs(displayWind)} ${direction}`;
+        }
+
+        function updateUI() {
+            const p = currentPlayer === 1 ? p1 : p2;
+            angleDisplay.innerText = Math.round(p.angle) + '°';
+            powerFill.style.width = Math.min(100, (p.power / MAX_POWER) * 100) + '%';
+
+            turnIndicator.innerText = currentPlayer === 1 ? "YOUR TURN" : "ENEMY TURN";
+            turnIndicator.style.color = currentPlayer === 1 ? 'var(--neon-blue)' : 'var(--neon-pink)';
+            stageIndicator.innerText = `STAGE ${currentStage} / ${MAX_STAGE}`;
+
+            hpP1.style.width = Math.max(0, p1.hp) + '%';
+            hpTextP1.innerText = Math.round(Math.max(0, p1.hp));
+
+            let maxEnemyHp = Math.min(100, 50 + currentStage * 3);
+            hpP2.style.width = Math.min(100, (Math.max(0, p2.hp) / maxEnemyHp) * 100) + '%';
+            hpTextP2.innerText = Math.round(Math.max(0, p2.hp));
+        }
+
+        function fireMissile(player) {
+            state = 'FIRING';
+            playSound('shoot');
+
+            // 살짝만 눌러도 멀리 날아가던 현상 방지 (최소 파워 8 -> 2 로 대폭 감소)
+            let finalPower = Math.max(2, player.power);
+            let rad = player.angle * Math.PI / 180;
+
+            missile = {
+                x: player.x + Math.cos(rad) * 22,
+                y: player.y - TANK_HEIGHT / 2 - Math.sin(rad) * 22,
+                vx: Math.cos(rad) * finalPower,
+                vy: -Math.sin(rad) * finalPower,
+                radius: 4,
+                trail: []
+            };
+
+            player.power = 0;
+            updateUI();
+        }
+
+        // 모바일 버전에서도 똑똑한 CPU 유지
+        function playCPUTurn() {
+            setTimeout(() => {
+                if (state === 'GAMEOVER') return;
+
+                let targetX = p1.x;
+                let targetY = p1.y;
+
+                let heightMap = new Int16Array(width);
+                for (let x = 0; x < width; x += 5) heightMap[x] = getTerrainY(x);
+                function fastGetTerrainY(x) {
+                    let px = Math.floor(x);
+                    if (px < 0) px = 0;
+                    if (px >= width) px = width - 1;
+                    px = Math.round(px / 5) * 5;
+                    if (px >= width) px = width - 5;
+                    return heightMap[px];
+                }
+
+                let bestAngle = 135;
+                let bestPower = 15;
+                let minDiff = 99999;
+
+                for (let a = 110; a <= 180; a += 5) {
+                    for (let p = 8; p <= MAX_POWER; p += 1) {
+                        let rad = a * Math.PI / 180;
+                        let simX = p2.x + Math.cos(rad) * 22;
+                        let simY = p2.y - TANK_HEIGHT / 2 - Math.sin(rad) * 22;
+                        let v_x = Math.cos(rad) * p;
+                        let v_y = -Math.sin(rad) * p;
+
+                        let pMinDiff = 99999;
+                        for (let t = 0; t < 150; t++) {
+                            v_x += wind;
+                            v_y += GRAVITY;
+                            simX += v_x;
+                            simY += v_y;
+
+                            if (simX >= 0 && simX < width && simY > 0) {
+                                if (simY >= fastGetTerrainY(simX)) {
+                                    let diff = Math.hypot(simX - targetX, simY - targetY);
+                                    if (diff < pMinDiff) pMinDiff = diff;
+                                    if (simX > targetX + 60) pMinDiff = 99999; // 자폭 방지
+                                    break;
+                                }
+                            }
+
+                            let diff = Math.hypot(simX - targetX, simY - targetY);
+                            if (diff < pMinDiff) pMinDiff = diff;
+
+                            if (simY > height || simX < targetX - 50) break;
+                        }
+
+                        if (pMinDiff < minDiff) {
+                            minDiff = pMinDiff;
+                            bestAngle = a;
+                            bestPower = p;
+                        }
+                    }
+                }
+
+                p2.angle = bestAngle;
+                updateUI();
+
+                // 날카로운 스테이지 난이도 (스테이지 오를수록 인간미 줄어듬 = 명사수 됨)
+                let errorRate = Math.max(0.2, 1.5 - currentStage * 0.02);
+                let finalPower = bestPower + (Math.random() - 0.5) * errorRate;
+                finalPower = Math.max(8, Math.min(MAX_POWER, finalPower));
+
+                let currentPower = 0;
+                let chargeInterval = setInterval(() => {
+                    currentPower += 0.4;
+                    p2.power = currentPower;
+                    updateUI();
+
+                    if (currentPower >= finalPower) {
+                        clearInterval(chargeInterval);
+                        fireMissile(p2);
+                        missile.vx = Math.cos(p2.angle * Math.PI / 180) * finalPower;
+                        missile.vy = -Math.sin(p2.angle * Math.PI / 180) * finalPower;
+                    }
+                }, 20);
+
+            }, 1000);
+        }
+
+        function gameLoop() {
+            if (state === 'GAMEOVER') return;
+
+            // 모바일 터치 패드의 부드러운 각도 조절 연동
+            if (state === 'AIMING' && currentPlayer === 1) {
+                if (upPressed) p1.angle = Math.min(180, Math.max(0, p1.angle + 0.4)); // 조준 속도 약 2.5배 감속
+                if (downPressed) p1.angle = Math.min(180, Math.max(0, p1.angle - 0.4));
+
+                if (spacePressed) {
+                    p1.power += 0.22; // 체감 게이지 충전 속도 대폭 감속 (이전 0.35)
+                    if (p1.power > MAX_POWER) p1.power = MAX_POWER;
+                }
+                updateUI();
+            }
+
+            p1.y += (getTerrainY(p1.x) - p1.y - TANK_HEIGHT / 2) * 0.2;
+            p2.y += (getTerrainY(p2.x) - p2.y - TANK_HEIGHT / 2) * 0.2;
+
+            if (state === 'FIRING' && missile) {
+                missile.trail.push({ x: missile.x, y: missile.y });
+                if (missile.trail.length > 20) missile.trail.shift();
+
+                missile.vx += wind;
+                missile.vy += GRAVITY;
+                missile.x += missile.vx;
+                missile.y += missile.vy;
+
+                if (missile.x < -200 || missile.x > width + 200 || missile.y > height + 200) {
+                    nextTurn();
+                }
+                else if (missile.x >= 0 && missile.x <= width && missile.y >= 0 && missile.y <= height) {
+                    let px = Math.floor(missile.x);
+                    let py = Math.floor(missile.y);
+                    let imgData = terrainCtx.getImageData(px, py, 1, 1).data;
+                    let hitTerrain = imgData[3] > 50;
+
+                    let distP1 = Math.hypot(missile.x - p1.x, missile.y - p1.y);
+                    let distP2 = Math.hypot(missile.x - p2.x, missile.y - p2.y);
+
+                    if (hitTerrain || distP1 < 25 || distP2 < 25) {
+                        explode(missile.x, missile.y);
+                    }
+                }
+            }
+
+            drawEntityCanvas();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function explode(x, y) {
+            playSound('explode');
+
+            // 오빠 요청: 구덩이 크기 2/3 수준 (35 -> 23)으로 재축소
+            const explosionRadius = 23;
+
+            terrainCtx.globalCompositeOperation = 'destination-out';
+            terrainCtx.beginPath();
+            terrainCtx.arc(x, y, explosionRadius, 0, Math.PI * 2);
+            terrainCtx.fill();
+            terrainCtx.globalCompositeOperation = 'source-over';
+
+            // 구덩이가 작아진 대신 타격 데미지는 약간 상향 (1.5 -> 1.8)
+            const damageCalc = (dist) => dist < (explosionRadius + 15) ? ((explosionRadius + 15) - dist) * 1.8 : 0;
+
+            let distP1 = Math.hypot(x - p1.x, y - p1.y);
+            let distP2 = Math.hypot(x - p2.x, y - p2.y);
+
+            p1.hp -= damageCalc(distP1);
+            p2.hp -= damageCalc(distP2);
+
+            updateUI();
+
+            entityCtx.fillStyle = 'rgba(255, 100, 0, 0.8)';
+            entityCtx.beginPath();
+            entityCtx.arc(x, y, explosionRadius + 5, 0, Math.PI * 2);
+            entityCtx.fill();
+
+            state = 'WAITING';
+            missile = null;
+
+            if (p1.hp <= 0 || p2.hp <= 0) {
+                setTimeout(gameOver, 1000); // 모바일은 여운을 조금 더 길게
+            } else {
+                setTimeout(nextTurn, 800);
+            }
+        }
+
+        function nextTurn() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            randomizeWind();
+            state = 'AIMING';
+            updateUI();
+
+            if (currentPlayer === 2 && isCpuMode) {
+                state = 'CPU_THINKING';
+                playCPUTurn();
+            }
+        }
+
+        function gameOver() {
+            state = 'GAMEOVER';
+            pauseBGM(); // 스테이지 전환 시 BGM 페이드아웃
+
+            if (p1.hp <= 0 && p2.hp <= 0) {
+                winnerText.innerText = "DRAW\nRETRY STAGE";
+                winnerText.style.color = "#aaa";
+                winnerText.style.textShadow = "0 0 10px #aaa";
+                restartBtn.innerText = "RETRY STAGE " + currentStage;
+            } else if (p1.hp <= 0) {
+                winnerText.innerText = "YOU DIED...";
+                winnerText.style.color = "var(--neon-pink)";
+                winnerText.style.textShadow = "0 0 15px var(--neon-pink)";
+                restartBtn.innerText = "RETRY STAGE " + currentStage;
+            } else {
+                if (currentStage >= MAX_STAGE) {
+                    winnerText.innerText = "🎉 ALL 50 STAGES CLEARED!! 🎉";
+                    winnerText.style.color = "var(--neon-orange)";
+                    winnerText.style.textShadow = "0 0 20px var(--neon-orange)";
+                    restartBtn.innerText = "PLAY AGAIN FROM STAGE 1";
+                } else {
+                    winnerText.innerText = "STAGE CLEAR!";
+                    winnerText.style.color = "var(--neon-blue)";
+                    winnerText.style.textShadow = "0 0 15px var(--neon-blue)";
+                    restartBtn.innerText = "NEXT STAGE " + (currentStage + 1);
+                }
+            }
+
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function drawEntityCanvas() {
+            entityCtx.clearRect(0, 0, width, height);
+
+            [p1, p2].forEach((p, idx) => {
+                if (p.hp <= 0) return;
+
+                let isCurrentTurn = (idx + 1) === currentPlayer && (state === 'AIMING' || state === 'CPU_THINKING');
+
+                if (isCurrentTurn) {
+                    entityCtx.shadowBlur = 15;
+                    entityCtx.shadowColor = p.color;
+                } else {
+                    entityCtx.shadowBlur = 0;
+                }
+
+                entityCtx.fillStyle = p.color;
+                entityCtx.fillRect(p.x - TANK_WIDTH / 2, p.y - TANK_HEIGHT / 2, TANK_WIDTH, TANK_HEIGHT);
+
+                entityCtx.beginPath();
+                entityCtx.arc(p.x, p.y - TANK_HEIGHT / 2, 9, 0, Math.PI * 2);
+                entityCtx.fill();
+
+                entityCtx.strokeStyle = p.color;
+                entityCtx.lineWidth = 5;
+                entityCtx.lineCap = 'round';
+                entityCtx.beginPath();
+                entityCtx.moveTo(p.x, p.y - TANK_HEIGHT / 2);
+
+                let cRad = p.angle * Math.PI / 180;
+                entityCtx.lineTo(p.x + Math.cos(cRad) * 22, p.y - TANK_HEIGHT / 2 - Math.sin(cRad) * 22);
+                entityCtx.stroke();
+
+                entityCtx.shadowBlur = 0;
+            });
+
+            if ((state === 'AIMING' || state === 'CPU_THINKING') && p1.hp > 0 && p2.hp > 0) {
+                const p = currentPlayer === 1 ? p1 : p2;
+                let p_rad = p.angle * Math.PI / 180;
+                let v_x = Math.cos(p_rad) * MAX_POWER;
+                let v_y = -Math.sin(p_rad) * MAX_POWER;
+
+                entityCtx.beginPath();
+                entityCtx.setLineDash([4, 8]);
+                entityCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                entityCtx.lineWidth = 2;
+
+                let tx = p.x + Math.cos(p_rad) * 22;
+                let ty = p.y - TANK_HEIGHT / 2 - Math.sin(p_rad) * 22;
+                entityCtx.moveTo(tx, ty);
+
+                for (let i = 0; i < 30; i++) {
+                    v_x += wind;
+                    v_y += GRAVITY;
+                    tx += v_x;
+                    ty += v_y;
+                    entityCtx.lineTo(tx, ty);
+                }
+                entityCtx.stroke();
+                entityCtx.setLineDash([]);
+            }
+
+            if (missile) {
+                if (missile.trail.length > 0) {
+                    entityCtx.beginPath();
+                    entityCtx.moveTo(missile.trail[0].x, missile.trail[0].y);
+                    for (let i = 1; i < missile.trail.length; i++) {
+                        entityCtx.lineTo(missile.trail[i].x, missile.trail[i].y);
+                    }
+                    entityCtx.strokeStyle = 'rgba(255, 230, 0, 0.6)';
+                    entityCtx.lineWidth = 2;
+                    entityCtx.stroke();
+                }
+
+                entityCtx.fillStyle = '#fff';
+                entityCtx.shadowBlur = 12;
+                entityCtx.shadowColor = '#ffff00';
+                entityCtx.beginPath();
+                entityCtx.arc(missile.x, missile.y, missile.radius, 0, Math.PI * 2);
+                entityCtx.fill();
+                entityCtx.shadowBlur = 0;
+            }
+        }
+
+        document.getElementById('real-start-btn').addEventListener('click', async () => {
+            const startScreen = document.getElementById('start-screen');
+            const portraitWarning = document.getElementById('portrait-warning');
+
+            // 1. 풀스크린 강력 요청 (크롬 주소창 등 시스템 UI 날리기)
+            const docEl = document.documentElement;
+            try {
+                if (docEl.requestFullscreen) await docEl.requestFullscreen();
+                else if (docEl.webkitRequestFullscreen) await docEl.webkitRequestFullscreen();
+            } catch (e) { console.log("Fullscreen API Blocked", e); }
+
+            // 2. 가로 모드 강제 잠금 요청
+            try {
+                if (screen.orientation && screen.orientation.lock) {
+                    await screen.orientation.lock("landscape");
+                }
+            } catch (e) { console.log("Orientation Lock Blocked", e); }
+
+            // 3. 사용자 인터랙션(터치)이 발생했으므로 모바일 브라우저의 오디오 정책 통과 보장!
+            initAudio();
+
+            // 4. 시작화면 치우고 실제 게임 로직(init) 가동
+            startScreen.classList.add('hidden');
+            portraitWarning.classList.add('active'); // 지금부터 폰 세우면 경고창 뜸
+
+            init();
+        });
+
+        // ==========================================
+        // 🛡️ 똑순이의 PWA '진짜 앱' 자동 등록 시스템 
+        // (게임 로직과 완전히 분리되어 있어 안전해요!)
+        // ==========================================
+        // ==========================================
+        // 🛡️ 똑순이의 PWA '진짜 앱' 자동 등록 및 설치 도우미
+        // ==========================================
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwa-install-banner');
+        const installBtn = document.getElementById('btn-install-now');
+        const installClose = document.getElementById('btn-install-close');
+        const pwaDesc = document.getElementById('pwa-desc');
+
+        // 1. 이미 앱으로 접속했는지 확인 (Standalone 모드라면 배너 안 띄움!)
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+        if (!isStandalone) {
+            // 안드로이드/크롬 설치 프롬프트 캡쳐
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                installBanner.style.display = 'flex';
+            });
+
+            // 아이폰(Safari)을 위한 안내 메시지 변경
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+                installBanner.style.display = 'flex';
+                pwaDesc.innerHTML = '하단의 <b>공유</b> 버튼을 누르고<br><b>[홈 화면에 추가]</b>를 눌러주세요! 📱';
+                installBtn.style.display = 'none'; // iOS는 시스템 버튼 클릭 불가능하므로 안내만
+            }
+        }
+
+        installBtn.onclick = async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBanner.style.display = 'none';
+            }
+            deferredPrompt = null;
+        };
+
+        installClose.onclick = () => {
+            installBanner.style.display = 'none';
+        };
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('똑순이: 미사일대전 앱 설치 준비 완료!'))
+                    .catch(err => console.log('똑순이: 앱 등록 실패', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
