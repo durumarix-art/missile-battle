@@ -1081,7 +1081,14 @@
             }, 1000);
         }
 
-        function gameLoop() {
+        let lastFrameTime = 0;
+        function gameLoop(timestamp) {
+            requestAnimationFrame(gameLoop);
+            if (!timestamp) timestamp = performance.now();
+            let elapsed = timestamp - lastFrameTime;
+            if (elapsed < 16) return; // 120Hz 고주사율 모바일 폰에서 2배속 광속 방지 (60FPS 고정)
+            lastFrameTime = timestamp - (elapsed % 16.666);
+
             if (state === 'GAMEOVER') return;
 
             // 모바일 터치 패드의 부드러운 각도 조절 연동
@@ -1128,7 +1135,6 @@
             }
 
             drawEntityCanvas();
-            requestAnimationFrame(gameLoop);
         }
 
         function explode(x, y) {

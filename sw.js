@@ -1,4 +1,4 @@
-const CACHE_NAME = 'missile-battle-v6'; // 물리엔진 보정 패치로 업데이트
+const CACHE_NAME = 'missile-battle-v7'; // 120Hz 모바일 폭주(2배속) 고정 패치
 const ASSETS_TO_CACHE = [
   './index.html', // 파일명 수정
   './manifest.json',
