@@ -1081,13 +1081,13 @@
             }, 1000);
         }
 
-        let lastFrameTime = 0;
+        let lastFrameTime = performance.now();
         function gameLoop(timestamp) {
             requestAnimationFrame(gameLoop);
             if (!timestamp) timestamp = performance.now();
             let elapsed = timestamp - lastFrameTime;
-            if (elapsed < 16) return; // 120Hz 고주사율 모바일 폰에서 2배속 광속 방지 (60FPS 고정)
-            lastFrameTime = timestamp - (elapsed % 16.666);
+            if (elapsed < 14) return; // 120Hz 고주사율 등에서 60FPS(16ms) 고정을 위한 스킵
+            lastFrameTime = timestamp; // 정확한 현재 시간으로 갱신하여 끊김(Jitter) 완벽 방지
 
             if (state === 'GAMEOVER') return;
 

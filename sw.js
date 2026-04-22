@@ -1,4 +1,4 @@
-const CACHE_NAME = 'missile-battle-v7'; // 120Hz 모바일 폭주(2배속) 고정 패치
+const CACHE_NAME = 'missile-battle-v8'; // 120Hz 프레임 끊김 버그 완벽 수정
 const ASSETS_TO_CACHE = [
   './index.html', // 파일명 수정
   './manifest.json',
