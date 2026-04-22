@@ -1,4 +1,4 @@
-const CACHE_NAME = 'missile-battle-v5'; // 버전을 v5로 올려서 모바일 기기 강제 업데이트 유도
+const CACHE_NAME = 'missile-battle-v6'; // 물리엔진 보정 패치로 업데이트
 const ASSETS_TO_CACHE = [
   './index.html', // 파일명 수정
   './manifest.json',

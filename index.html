@@ -977,8 +977,8 @@
             state = 'FIRING';
             playSound('shoot');
 
-            // 살짝만 눌러도 멀리 날아가던 현상 방지 (최소 파워 8 -> 2 로 대폭 감소)
-            let finalPower = Math.max(2, player.power);
+            let physicsScale = width / 1200;
+            let finalPower = Math.max(2, player.power) * physicsScale;
             let rad = player.angle * Math.PI / 180;
 
             missile = {
@@ -1019,16 +1019,17 @@
 
                 for (let a = 110; a <= 180; a += 5) {
                     for (let p = 8; p <= MAX_POWER; p += 1) {
+                        let physicsScale = width / 1200;
                         let rad = a * Math.PI / 180;
                         let simX = p2.x + Math.cos(rad) * 22;
                         let simY = p2.y - TANK_HEIGHT / 2 - Math.sin(rad) * 22;
-                        let v_x = Math.cos(rad) * p;
-                        let v_y = -Math.sin(rad) * p;
+                        let v_x = Math.cos(rad) * p * physicsScale;
+                        let v_y = -Math.sin(rad) * p * physicsScale;
 
                         let pMinDiff = 99999;
                         for (let t = 0; t < 150; t++) {
-                            v_x += wind;
-                            v_y += GRAVITY;
+                            v_x += wind * physicsScale;
+                            v_y += GRAVITY * physicsScale;
                             simX += v_x;
                             simY += v_y;
 
@@ -1102,8 +1103,9 @@
                 missile.trail.push({ x: missile.x, y: missile.y });
                 if (missile.trail.length > 20) missile.trail.shift();
 
-                missile.vx += wind;
-                missile.vy += GRAVITY;
+                let physicsScale = width / 1200;
+                missile.vx += wind * physicsScale;
+                missile.vy += GRAVITY * physicsScale;
                 missile.x += missile.vx;
                 missile.y += missile.vy;
 
@@ -1247,9 +1249,10 @@
 
             if ((state === 'AIMING' || state === 'CPU_THINKING') && p1.hp > 0 && p2.hp > 0) {
                 const p = currentPlayer === 1 ? p1 : p2;
+                let physicsScale = width / 1200;
                 let p_rad = p.angle * Math.PI / 180;
-                let v_x = Math.cos(p_rad) * MAX_POWER;
-                let v_y = -Math.sin(p_rad) * MAX_POWER;
+                let v_x = Math.cos(p_rad) * MAX_POWER * physicsScale;
+                let v_y = -Math.sin(p_rad) * MAX_POWER * physicsScale;
 
                 entityCtx.beginPath();
                 entityCtx.setLineDash([4, 8]);
@@ -1261,8 +1264,8 @@
                 entityCtx.moveTo(tx, ty);
 
                 for (let i = 0; i < 30; i++) {
-                    v_x += wind;
-                    v_y += GRAVITY;
+                    v_x += wind * physicsScale;
+                    v_y += GRAVITY * physicsScale;
                     tx += v_x;
                     ty += v_y;
                     entityCtx.lineTo(tx, ty);
