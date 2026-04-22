@@ -1,0 +1,255 @@
+/* 사이버펑크 & 네온 스타일 포트리스 */
+:root {
+    --bg-color: #0b0c10;
+    --panel-bg: rgba(31, 40, 51, 0.85);
+    --neon-blue: #66fcf1;
+    --neon-green: #45a29e;
+    --neon-pink: #ff007f;
+    --neon-orange: #ff8c00;
+    --text-color: #c5c6c7;
+    --font-main: 'Orbitron', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+    user-select: none;
+}
+
+#game-container {
+    width: 1000px;
+    height: 650px;
+    position: relative;
+    border: 2px solid rgba(102, 252, 241, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(102, 252, 241, 0.1);
+    background: #000;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 상단 HUD */
+#hud-top {
+    height: 50px;
+    background: var(--panel-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--neon-blue);
+    z-index: 10;
+}
+
+.hud-box {
+    display: flex;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--neon-blue);
+    text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.label {
+    color: var(--text-color);
+    text-shadow: none;
+    font-size: 0.9rem;
+    align-self: center;
+}
+
+#turn-indicator {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+    animation: pulse 1.5s infinite;
+}
+
+.turn-p1 { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
+.turn-p2 { color: var(--neon-pink); text-shadow: 0 0 10px var(--neon-pink); }
+
+@keyframes pulse {
+    0% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+    100% { opacity: 0.8; transform: scale(1); }
+}
+
+/* 캔버스 영역 */
+#canvas-wrapper {
+    position: relative;
+    flex-grow: 1;
+    overflow: hidden;
+    background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364); /* 은은한 배경 밤하늘 */
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#terrain-canvas {
+    z-index: 1;
+}
+
+#entity-canvas {
+    z-index: 2;
+}
+
+/* 하단 컨트롤 패널 */
+#controls-bottom {
+    height: 100px;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--neon-blue);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 10;
+}
+
+.player-panel {
+    width: 200px;
+}
+
+.hp-bar-container {
+    width: 100%;
+    height: 15px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.hp-fill {
+    height: 100%;
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+#hp-p1 { background: linear-gradient(90deg, #00f2fe, #4facfe); }
+#hp-p2 { background: linear-gradient(90deg, #ff0844, #ffb199); }
+
+.stats {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+.stats.right { text-align: right; }
+.hp-bar-container.right { transform: rotateY(180deg); } /* 오른쪽 게이지는 반대로 깎이게 구성할 수도 있음 */
+
+/* 중앙 컨트롤부 */
+.center-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 400px;
+}
+
+.angle-box {
+    font-size: 1.5rem;
+    color: var(--neon-orange);
+    text-shadow: 0 0 8px var(--neon-orange);
+}
+
+.power-meter-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+}
+
+.power-bar {
+    flex-grow: 1;
+    height: 20px;
+    background: #111;
+    border: 2px solid #444;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 0 5px #000;
+}
+
+#power-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #fceabb, #f8b500);
+    box-shadow: 0 0 10px #f8b500;
+}
+
+.instruction {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 5px;
+}
+
+.key {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #333;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.75rem;
+    border-bottom: 2px solid #111;
+}
+
+/* 게임 오버 수크린 */
+#game-over-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+}
+
+#game-over-screen.hidden {
+    display: none;
+}
+
+#winner-text {
+    font-size: 4rem;
+    color: var(--neon-blue);
+    text-shadow: 0 0 20px var(--neon-blue);
+    margin-bottom: 30px;
+    animation: pulse 1s infinite alternate;
+}
+
+#restart-btn {
+    padding: 15px 40px;
+    font-size: 1.5rem;
+    font-family: var(--font-main);
+    background: transparent;
+    color: var(--neon-green);
+    border: 2px solid var(--neon-green);
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 15px rgba(69, 162, 158, 0.4);
+    transition: all 0.3s;
+}
+
+#restart-btn:hover {
+    background: var(--neon-green);
+    color: #000;
+    box-shadow: 0 0 25px var(--neon-green);
+}
