@@ -1073,8 +1073,9 @@
                     if (currentPower >= finalPower) {
                         clearInterval(chargeInterval);
                         fireMissile(p2);
-                        missile.vx = Math.cos(p2.angle * Math.PI / 180) * finalPower;
-                        missile.vy = -Math.sin(p2.angle * Math.PI / 180) * finalPower;
+                        let physicsScale = width / 1200;
+                        missile.vx = Math.cos(p2.angle * Math.PI / 180) * finalPower * physicsScale;
+                        missile.vy = -Math.sin(p2.angle * Math.PI / 180) * finalPower * physicsScale;
                     }
                 }, 20);
 

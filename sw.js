@@ -1,4 +1,4 @@
-const CACHE_NAME = 'missile-battle-v8'; // 120Hz 프레임 끊김 버그 완벽 수정
+const CACHE_NAME = 'missile-battle-v9'; // CPU 어이없는 헛방 버그 수정
 const ASSETS_TO_CACHE = [
   './index.html', // 파일명 수정
   './manifest.json',
